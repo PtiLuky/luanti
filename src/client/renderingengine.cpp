@@ -67,30 +67,43 @@ void FpsControl::limit(IrrlichtDevice *device, f32 *dtime)
 	last_time = time;
 }
 
-void FogShaderUniformSetter::onSetUniforms(video::IMaterialRendererServices *services)
+class FogShaderUniformSetter : public IShaderUniformSetter
 {
-	auto *driver = services->getVideoDriver();
-	assert(driver);
+	CachedPixelShaderSetting<float, 4> m_fog_color{"fogColor"};
+	CachedPixelShaderSetting<float> m_fog_distance{"fogDistance"};
+	CachedPixelShaderSetting<float> m_fog_shading_parameter{"fogShadingParameter"};
 
-	video::SColor fog_color(0);
-	video::E_FOG_TYPE fog_type = video::EFT_FOG_LINEAR;
-	f32 fog_start = 0;
-	f32 fog_end = 0;
-	f32 fog_density = 0;
-	bool fog_pixelfog = false;
-	bool fog_rangefog = false;
-	driver->getFog(fog_color, fog_type, fog_start, fog_end, fog_density,
-			fog_pixelfog, fog_rangefog);
+public:
+	void onSetUniforms(video::IMaterialRendererServices *services) override
+	{
+		auto *driver = services->getVideoDriver();
+		assert(driver);
 
-	video::SColorf fog_colorf(fog_color);
-	m_fog_color.set(fog_colorf, services);
+		video::SColor fog_color(0);
+		video::E_FOG_TYPE fog_type = video::EFT_FOG_LINEAR;
+		f32 fog_start = 0;
+		f32 fog_end = 0;
+		f32 fog_density = 0;
+		bool fog_pixelfog = false;
+		bool fog_rangefog = false;
+		driver->getFog(fog_color, fog_type, fog_start, fog_end, fog_density,
+				fog_pixelfog, fog_rangefog);
 
-	m_fog_distance.set(&fog_end, services);
+		video::SColorf fog_colorf(fog_color);
+		m_fog_color.set(fog_colorf, services);
 
-	float parameter = 0;
-	if (fog_end > 0)
-		parameter = 1.0f / (1.0f - fog_start / fog_end);
-	m_fog_shading_parameter.set(&parameter, services);
+		m_fog_distance.set(&fog_end, services);
+
+		float parameter = 0;
+		if (fog_end > 0)
+			parameter = 1.0f / (1.0f - fog_start / fog_end);
+		m_fog_shading_parameter.set(&parameter, services);
+	}
+};
+
+IShaderUniformSetter *FogShaderUniformSetterFactory::create()
+{
+	return new FogShaderUniformSetter();
 }
 
 /* Other helpers */
@@ -362,8 +375,8 @@ std::vector<video::E_DRIVER_TYPE> RenderingEngine::getSupportedVideoDrivers()
 	// Only check these drivers. We do not support software and D3D in any capacity.
 	// ordered by preference (best first)
 	static const video::E_DRIVER_TYPE glDrivers[] = {
-		video::EDT_OPENGL3,
 		video::EDT_OPENGL,
+		video::EDT_OPENGL3,
 		video::EDT_OGLES2,
 		video::EDT_NULL,
 	};

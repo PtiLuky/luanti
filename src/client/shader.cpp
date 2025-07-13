@@ -164,8 +164,14 @@ class ShaderCallback : public video::IShaderConstantSetCallBack
 public:
 	~ShaderCallback() override = default;
 
-	void AddSetter(std::unique_ptr<IShaderUniformSetter> setter) {
-		m_setters.emplace_back(std::move(setter));
+	template <typename Factories>
+	ShaderCallback(const Factories& factories)
+	{
+		for (auto&& factory : factories) {
+			auto* setter = factory->create();
+			if (setter)
+				m_setters.emplace_back(setter);
+		}
 	}
 
 	virtual void OnSetConstants(video::IMaterialRendererServices *services, s32 userData) override
@@ -320,6 +326,15 @@ public:
 	}
 };
 
+class MainShaderUniformSetterFactory : public IShaderUniformSetterFactory
+{
+public:
+	virtual IShaderUniformSetter* create()
+	{
+		return new MainShaderUniformSetter();
+	}
+};
+
 
 /*
 	ShaderSource
@@ -373,9 +388,9 @@ public:
 		m_constant_setters.emplace_back(std::move(setter));
 	}
 
-	void addShaderGeneralUniformSetter(std::unique_ptr<IShaderUniformSetter> setter) override
+	void addShaderUniformSetterFactory(std::unique_ptr<IShaderUniformSetterFactory> setter) override
 	{
-		m_general_shader_callback->AddSetter(std::move(setter));
+		m_uniform_factories.emplace_back(std::move(setter));
 	}
 
 private:
@@ -401,7 +416,8 @@ private:
 	// Global constant setter factories
 	std::vector<std::unique_ptr<IShaderConstantSetter>> m_constant_setters;
 
-	irr_ptr<ShaderCallback> m_general_shader_callback;
+	// Global uniform setter factories
+	std::vector<std::unique_ptr<IShaderUniformSetterFactory>> m_uniform_factories;
 
 	// Generate shader given the shader name.
 	ShaderInfo generateShader(const std::string &name,
@@ -424,8 +440,7 @@ IWritableShaderSource *createShaderSource()
 }
 
 ShaderSource::ShaderSource() :
-	m_main_thread(std::this_thread::get_id()),
-	m_general_shader_callback(make_irr<ShaderCallback>())
+	m_main_thread(std::this_thread::get_id())
 {
 
 	// Add a dummy ShaderInfo as the first index, named ""
@@ -433,7 +448,7 @@ ShaderSource::ShaderSource() :
 
 	// Add global stuff
 	addShaderConstantSetter(std::make_unique<MainShaderConstantSetter>());
-	addShaderGeneralUniformSetter(std::make_unique<MainShaderUniformSetter>());
+	addShaderUniformSetterFactory(std::make_unique<MainShaderUniformSetterFactory>());
 }
 
 ShaderSource::~ShaderSource()
@@ -742,11 +757,11 @@ ShaderInfo ShaderSource::generateShader(const std::string &name,
 	}
 
 	infostream << "Compiling high level shaders for " << log_name << std::endl;
-	video::IShaderConstantSetCallBack* callack = cb_override ? cb_override.get() : m_general_shader_callback.get();
+	irr_ptr<video::IShaderConstantSetCallBack> cb = cb_override ? cb_override : make_irr<ShaderCallback>(m_uniform_factories);
 	s32 shadermat = gpu->addHighLevelShaderMaterial(
 		vertex_shader.c_str(), fragment_shader.c_str(), geometry_shader_ptr,
 		log_name.c_str(), scene::EPT_TRIANGLES, scene::EPT_TRIANGLES, 0,
-		callack, shaderinfo.base_material);
+		cb.get(), shaderinfo.base_material);
 	if (shadermat == -1) {
 		errorstream << "generateShader(): failed to generate shaders for "
 			<< log_name << ", addHighLevelShaderMaterial failed." << std::endl;

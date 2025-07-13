@@ -54,16 +54,12 @@ struct FpsControl {
 };
 
 // Populates fogColor, fogDistance, fogShadingParameter with values from Irrlicht
-class FogShaderUniformSetter : public IShaderUniformSetter
+class FogShaderUniformSetterFactory : public IShaderUniformSetterFactory
 {
-	CachedPixelShaderSetting<float, 4> m_fog_color{ "fogColor" };
-	CachedPixelShaderSetting<float> m_fog_distance{ "fogDistance" };
-	CachedPixelShaderSetting<float> m_fog_shading_parameter{ "fogShadingParameter" };
-
 public:
-	void onSetUniforms(video::IMaterialRendererServices* services) override;
+	FogShaderUniformSetterFactory() {};
+	virtual IShaderUniformSetter *create();
 };
-
 
 /* Rendering engine class */
 

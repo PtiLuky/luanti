@@ -66,6 +66,11 @@ public:
 	{ }
 };
 
+class IShaderUniformSetterFactory {
+public:
+	virtual ~IShaderUniformSetterFactory() = default;
+	virtual IShaderUniformSetter* create() = 0;
+};
 
 template <typename T, std::size_t count, bool cache>
 class CachedShaderSetting {
@@ -274,7 +279,7 @@ public:
 
 	/// @note Takes ownership of @p setter.
 	virtual void addShaderConstantSetter(std::unique_ptr<IShaderConstantSetter> setter) = 0;
-	virtual void addShaderGeneralUniformSetter(std::unique_ptr<IShaderUniformSetter> setter) = 0;
+	virtual void addShaderUniformSetterFactory(std::unique_ptr<IShaderUniformSetterFactory> setter) = 0;
 };
 
 IWritableShaderSource *createShaderSource();
