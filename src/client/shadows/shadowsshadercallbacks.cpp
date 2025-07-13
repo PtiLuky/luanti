@@ -5,13 +5,13 @@
 #include "client/shadows/shadowsshadercallbacks.h"
 #include "client/renderingengine.h"
 
-void ShadowUniformSetter::onSetUniforms(video::IMaterialRendererServices* services)
+void ShadowUniformSetter::onSetUniforms(video::IMaterialRendererServices *services)
 {
-	auto* shadow = RenderingEngine::get_shadow_renderer();
+	auto *shadow = RenderingEngine::get_shadow_renderer();
 	if (!shadow)
 		return;
 
-	const auto& light = shadow->getDirectionalLight();
+	const auto &light = shadow->getDirectionalLight();
 
 	core::matrix4 shadowViewProj = light.getProjectionMatrix();
 	shadowViewProj *= light.getViewMatrix();
@@ -53,9 +53,9 @@ void ShadowUniformSetter::onSetUniforms(video::IMaterialRendererServices* servic
 }
 
 void ShadowDepthShaderCB::OnSetConstants(
-	video::IMaterialRendererServices* services, s32 userData)
+		video::IMaterialRendererServices *services, s32 userData)
 {
-	video::IVideoDriver* driver = services->getVideoDriver();
+	video::IVideoDriver *driver = services->getVideoDriver();
 
 	core::matrix4 lightMVP = driver->getTransform(video::ETS_PROJECTION);
 	lightMVP *= driver->getTransform(video::ETS_VIEW);
