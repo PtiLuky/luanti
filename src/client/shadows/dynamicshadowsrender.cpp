@@ -18,7 +18,6 @@
 #include "IMaterialRenderer.h"
 #include "IVideoDriver.h"
 
-
 ShadowRenderer::ShadowRenderer(IrrlichtDevice *device, Client *client) :
 		m_smgr(device->getSceneManager()), m_driver(device->getVideoDriver()),
 		m_client(client), m_shadow_strength(0.0f), m_shadow_tint(255, 0, 0, 0),
@@ -271,7 +270,7 @@ void ShadowRenderer::updateSMTextures()
 		// Update SM incrementally:
 		for (DirectionalLight &light : m_light_list) {
 			// Static shader values.
-			for (auto cb : { m_shadow_depth_cb, m_shadow_depth_entity_cb, m_shadow_depth_trans_cb }) {
+			for (auto cb : {m_shadow_depth_cb, m_shadow_depth_entity_cb, m_shadow_depth_trans_cb}) {
 				if (cb) {
 					cb->MapRes = (u32)m_shadow_map_texture_size;
 					cb->MaxFar = (f32)m_shadow_map_max_distance * BS;
