@@ -98,7 +98,7 @@ void ShadowRenderer::disable()
 void ShadowRenderer::preInit(IWritableShaderSource *shsrc)
 {
 	if (g_settings->getBool("enable_dynamic_shadows")) {
-		shsrc->addShaderGeneralUniformSetter(std::make_unique<ShadowUniformSetter>());
+		shsrc->addShaderUniformSetterFactory(std::make_unique<ShadowUniformSetterFactory>());
 	}
 }
 

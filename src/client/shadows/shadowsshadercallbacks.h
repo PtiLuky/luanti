@@ -39,6 +39,14 @@ public:
 	virtual void onSetUniforms(video::IMaterialRendererServices *services) override;
 };
 
+class ShadowUniformSetterFactory : public IShaderUniformSetterFactory
+{
+public:
+	virtual IShaderUniformSetter* create() {
+		return new ShadowUniformSetter();
+	}
+};
+
 // Used by depth shader
 
 class ShadowDepthShaderCB : public video::IShaderConstantSetCallBack

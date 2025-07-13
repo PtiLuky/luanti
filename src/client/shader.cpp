@@ -165,10 +165,10 @@ public:
 	~ShaderCallback() override = default;
 
 	template <typename Factories>
-	ShaderCallback(const Factories& factories)
+	ShaderCallback(const Factories &factories)
 	{
-		for (auto&& factory : factories) {
-			auto* setter = factory->create();
+		for (auto &&factory : factories) {
+			auto *setter = factory->create();
 			if (setter)
 				m_setters.emplace_back(setter);
 		}
@@ -330,9 +330,7 @@ class MainShaderUniformSetterFactory : public IShaderUniformSetterFactory
 {
 public:
 	virtual IShaderUniformSetter* create()
-	{
-		return new MainShaderUniformSetter();
-	}
+		{ return new MainShaderUniformSetter(); }
 };
 
 
