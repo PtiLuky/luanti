@@ -7,60 +7,53 @@
 #include <IShaderConstantSetCallBack.h>
 #include "client/shader.h"
 
-class ShadowRenderer;
-
 // Used by main game rendering
 
 class ShadowUniformSetter : public IShaderUniformSetter
 {
-	CachedPixelShaderSetting<f32, 16> m_shadow_view_proj{"m_ShadowViewProj"};
-	CachedPixelShaderSetting<f32, 3> m_light_direction{"v_LightDirection"};
-	CachedPixelShaderSetting<f32> m_texture_res{"f_textureresolution"};
-	CachedPixelShaderSetting<f32> m_shadow_strength{"f_shadow_strength"};
+	CachedPixelShaderSetting<f32, 16> m_shadow_view_proj{ "m_ShadowViewProj" };
+	CachedPixelShaderSetting<f32, 3> m_light_direction{ "v_LightDirection" };
+	CachedPixelShaderSetting<f32> m_texture_res{ "f_textureresolution" };
+	CachedPixelShaderSetting<f32> m_shadow_strength{ "f_shadow_strength" };
 	CachedPixelShaderSetting<f32, 3> m_shadow_tint{ "shadow_tint" };
-	CachedPixelShaderSetting<f32> m_time_of_day{"f_timeofday"};
-	CachedPixelShaderSetting<f32> m_shadowfar{"f_shadowfar"};
-	CachedPixelShaderSetting<f32, 4> m_camera_pos{"CameraPos"};
-	CachedPixelShaderSetting<s32> m_shadow_texture{"ShadowMapSampler"};
+	CachedPixelShaderSetting<f32> m_time_of_day{ "f_timeofday" };
+	CachedPixelShaderSetting<f32> m_shadowfar{ "f_shadowfar" };
+	CachedPixelShaderSetting<f32, 4> m_camera_pos{ "CameraPos" };
+	CachedPixelShaderSetting<s32> m_shadow_texture{ "ShadowMapSampler" };
 	CachedVertexShaderSetting<f32>
-		m_perspective_bias0_vertex{"xyPerspectiveBias0"};
+		m_perspective_bias0_vertex{ "xyPerspectiveBias0" };
 	CachedPixelShaderSetting<f32>
-		m_perspective_bias0_pixel{"xyPerspectiveBias0"};
+		m_perspective_bias0_pixel{ "xyPerspectiveBias0" };
 	CachedVertexShaderSetting<f32>
-		m_perspective_bias1_vertex{"xyPerspectiveBias1"};
+		m_perspective_bias1_vertex{ "xyPerspectiveBias1" };
 	CachedPixelShaderSetting<f32>
-		m_perspective_bias1_pixel{"xyPerspectiveBias1"};
+		m_perspective_bias1_pixel{ "xyPerspectiveBias1" };
 	CachedVertexShaderSetting<f32>
-		m_perspective_zbias_vertex{"zPerspectiveBias"};
-	CachedPixelShaderSetting<f32> m_perspective_zbias_pixel{"zPerspectiveBias"};
+		m_perspective_zbias_vertex{ "zPerspectiveBias" };
+	CachedPixelShaderSetting<f32> m_perspective_zbias_pixel{ "zPerspectiveBias" };
 
 public:
 	ShadowUniformSetter() = default;
 	~ShadowUniformSetter() = default;
 
-	virtual void onSetUniforms(video::IMaterialRendererServices *services) override;
-};
-
-class ShadowUniformSetterFactory : public IShaderUniformSetterFactory
-{
-public:
-	virtual IShaderUniformSetter *create() {
-		return new ShadowUniformSetter();
-	}
+	virtual void onSetUniforms(video::IMaterialRendererServices* services) override;
 };
 
 // Used by depth shader
 
-class ShadowDepthUniformSetter : public IShaderUniformSetter
+class ShadowDepthShaderCB : public video::IShaderConstantSetCallBack
 {
 public:
-	explicit ShadowDepthUniformSetter(ShadowRenderer *shadowRenderer);
-	~ShadowDepthUniformSetter() = default;
+	void OnSetMaterial(const video::SMaterial& material) override {}
 
-	virtual void onSetUniforms(video::IMaterialRendererServices* services) override;
+	void OnSetConstants(video::IMaterialRendererServices* services,
+		s32 userData) override;
+
+	f32 MaxFar{ 2048.0f }, MapRes{ 1024.0f };
+	f32 PerspectiveBiasXY{ 0.9f }, PerspectiveBiasZ{ 0.5f };
+	v3f CameraPos;
 
 private:
-	ShadowRenderer* m_shadowRenderer;
 	CachedVertexShaderSetting<f32, 16> m_light_mvp_setting{ "LightMVP" };
 	CachedVertexShaderSetting<f32> m_map_resolution_setting{ "MapResolution" };
 	CachedVertexShaderSetting<f32> m_max_far_setting{ "MaxFar" };
@@ -70,17 +63,4 @@ private:
 	CachedVertexShaderSetting<f32> m_perspective_bias1{ "xyPerspectiveBias1" };
 	CachedVertexShaderSetting<f32> m_perspective_zbias{ "zPerspectiveBias" };
 	CachedVertexShaderSetting<f32, 4> m_cam_pos_setting{ "CameraPos" };
-};
-
-class ShadowDepthUniformSetterFactory : public IShaderUniformSetterFactory
-{
-public:
-	explicit ShadowDepthUniformSetterFactory(ShadowRenderer* shadowRenderer) :
-		m_shadowRenderer(shadowRenderer)
-	{}
-	virtual IShaderUniformSetter* create() {
-		return new ShadowDepthUniformSetter(m_shadowRenderer);
-	}
-private:
-	ShadowRenderer* m_shadowRenderer;
 };

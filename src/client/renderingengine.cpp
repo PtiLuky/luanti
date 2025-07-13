@@ -67,43 +67,30 @@ void FpsControl::limit(IrrlichtDevice *device, f32 *dtime)
 	last_time = time;
 }
 
-class FogShaderUniformSetter : public IShaderUniformSetter
+void FogShaderUniformSetter::onSetUniforms(video::IMaterialRendererServices *services)
 {
-	CachedPixelShaderSetting<float, 4> m_fog_color{"fogColor"};
-	CachedPixelShaderSetting<float> m_fog_distance{"fogDistance"};
-	CachedPixelShaderSetting<float> m_fog_shading_parameter{"fogShadingParameter"};
+	auto *driver = services->getVideoDriver();
+	assert(driver);
 
-public:
-	void onSetUniforms(video::IMaterialRendererServices *services) override
-	{
-		auto *driver = services->getVideoDriver();
-		assert(driver);
+	video::SColor fog_color(0);
+	video::E_FOG_TYPE fog_type = video::EFT_FOG_LINEAR;
+	f32 fog_start = 0;
+	f32 fog_end = 0;
+	f32 fog_density = 0;
+	bool fog_pixelfog = false;
+	bool fog_rangefog = false;
+	driver->getFog(fog_color, fog_type, fog_start, fog_end, fog_density,
+			fog_pixelfog, fog_rangefog);
 
-		video::SColor fog_color(0);
-		video::E_FOG_TYPE fog_type = video::EFT_FOG_LINEAR;
-		f32 fog_start = 0;
-		f32 fog_end = 0;
-		f32 fog_density = 0;
-		bool fog_pixelfog = false;
-		bool fog_rangefog = false;
-		driver->getFog(fog_color, fog_type, fog_start, fog_end, fog_density,
-				fog_pixelfog, fog_rangefog);
+	video::SColorf fog_colorf(fog_color);
+	m_fog_color.set(fog_colorf, services);
 
-		video::SColorf fog_colorf(fog_color);
-		m_fog_color.set(fog_colorf, services);
+	m_fog_distance.set(&fog_end, services);
 
-		m_fog_distance.set(&fog_end, services);
-
-		float parameter = 0;
-		if (fog_end > 0)
-			parameter = 1.0f / (1.0f - fog_start / fog_end);
-		m_fog_shading_parameter.set(&parameter, services);
-	}
-};
-
-IShaderUniformSetter *FogShaderUniformSetterFactory::create()
-{
-	return new FogShaderUniformSetter();
+	float parameter = 0;
+	if (fog_end > 0)
+		parameter = 1.0f / (1.0f - fog_start / fog_end);
+	m_fog_shading_parameter.set(&parameter, services);
 }
 
 /* Other helpers */

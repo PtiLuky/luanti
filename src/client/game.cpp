@@ -381,35 +381,6 @@ public:
 	}
 };
 
-
-class GameGlobalShaderUniformSetterFactory : public IShaderUniformSetterFactory
-{
-	Sky *m_sky = nullptr;
-	Client *m_client;
-	std::vector<GameGlobalShaderUniformSetter *> created_nosky;
-public:
-	GameGlobalShaderUniformSetterFactory(Client *client) :
-		m_client(client)
-	{}
-
-	void setSky(Sky *sky)
-	{
-		m_sky = sky;
-		for (GameGlobalShaderUniformSetter *ggscs : created_nosky) {
-			ggscs->setSky(m_sky);
-		}
-		created_nosky.clear();
-	}
-
-	virtual IShaderUniformSetter* create()
-	{
-		auto *scs = new GameGlobalShaderUniformSetter(m_sky, m_client);
-		if (!m_sky)
-			created_nosky.push_back(scs);
-		return scs;
-	}
-};
-
 class NodeShaderConstantSetter : public IShaderConstantSetter
 {
 public:
@@ -1360,13 +1331,12 @@ bool Game::createClient(const GameStartData &start_data)
 		return false;
 	}
 
-	shader_src->addShaderConstantSetter(new NodeShaderConstantSetter());
+	shader_src->addShaderConstantSetter(std::make_unique<NodeShaderConstantSetter>());
 
-	auto *scsf = new GameGlobalShaderUniformSetterFactory(client);
-	shader_src->addShaderUniformSetterFactory(scsf);
-
-	shader_src->addShaderUniformSetterFactory(
-		new FogShaderUniformSetterFactory());
+	auto scs_up = std::make_unique<GameGlobalShaderUniformSetter>(nullptr, client);
+	auto* scs = scs_up.get();
+	shader_src->addShaderGeneralUniformSetter(std::move(scs_up));
+	shader_src->addShaderGeneralUniformSetter(std::make_unique<FogShaderUniformSetter>());
 
 	ShadowRenderer::preInit(shader_src);
 
@@ -1387,7 +1357,7 @@ bool Game::createClient(const GameStartData &start_data)
 	/* Skybox
 	 */
 	sky = make_irr<Sky>(-1, m_rendering_engine, texture_src, shader_src);
-	scsf->setSky(sky.get());
+	scs->setSky(sky.get());
 
 	/* Pre-calculated values
 	 */

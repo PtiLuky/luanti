@@ -5,13 +5,13 @@
 #include "client/shadows/shadowsshadercallbacks.h"
 #include "client/renderingengine.h"
 
-void ShadowUniformSetter::onSetUniforms(video::IMaterialRendererServices *services)
+void ShadowUniformSetter::onSetUniforms(video::IMaterialRendererServices* services)
 {
-	auto *shadow = RenderingEngine::get_shadow_renderer();
+	auto* shadow = RenderingEngine::get_shadow_renderer();
 	if (!shadow)
 		return;
 
-	const auto &light = shadow->getDirectionalLight();
+	const auto& light = shadow->getDirectionalLight();
 
 	core::matrix4 shadowViewProj = light.getProjectionMatrix();
 	shadowViewProj *= light.getViewMatrix();
@@ -52,34 +52,29 @@ void ShadowUniformSetter::onSetUniforms(video::IMaterialRendererServices *servic
 	m_perspective_zbias_pixel.set(&zbias, services);
 }
 
-ShadowDepthUniformSetter::ShadowDepthUniformSetter(ShadowRenderer* shadowRenderer) :
-	m_shadowRenderer(shadowRenderer)
-{}
-
-void ShadowDepthUniformSetter::onSetUniforms(video::IMaterialRendererServices* services)
+void ShadowDepthShaderCB::OnSetConstants(
+	video::IMaterialRendererServices* services, s32 userData)
 {
-	video::IVideoDriver *driver = services->getVideoDriver();
+	video::IVideoDriver* driver = services->getVideoDriver();
 
 	core::matrix4 lightMVP = driver->getTransform(video::ETS_PROJECTION);
 	lightMVP *= driver->getTransform(video::ETS_VIEW);
 
 	f32 cam_pos[4];
-	lightMVP.transformVect(cam_pos, m_shadowRenderer->getCurrentLightCameraPos());
+	lightMVP.transformVect(cam_pos, CameraPos);
 
 	lightMVP *= driver->getTransform(video::ETS_WORLD);
 
 	m_light_mvp_setting.set(lightMVP, services);
-	f32 mapRes = m_shadowRenderer->getMapRes();
-	m_map_resolution_setting.set(&mapRes, services);
-	f32 maxFar = m_shadowRenderer->getMaxFar();
-	m_max_far_setting.set(&maxFar, services);
+	m_map_resolution_setting.set(&MapRes, services);
+	m_max_far_setting.set(&MaxFar, services);
 	s32 TextureId = 0;
 	m_color_map_sampler_setting.set(&TextureId, services);
-	f32 bias0 = m_shadowRenderer->getPerspectiveBiasXY();
+	f32 bias0 = PerspectiveBiasXY;
 	m_perspective_bias0.set(&bias0, services);
 	f32 bias1 = 1.0f - bias0 + 1e-5f;
 	m_perspective_bias1.set(&bias1, services);
-	f32 zbias = m_shadowRenderer->getPerspectiveBiasZ();
+	f32 zbias = PerspectiveBiasZ;
 	m_perspective_zbias.set(&zbias, services);
 
 	m_cam_pos_setting.set(cam_pos, services);

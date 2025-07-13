@@ -18,14 +18,13 @@
 #include "IMaterialRenderer.h"
 #include "IVideoDriver.h"
 
+
 ShadowRenderer::ShadowRenderer(IrrlichtDevice *device, Client *client) :
 		m_smgr(device->getSceneManager()), m_driver(device->getVideoDriver()),
 		m_client(client), m_shadow_strength(0.0f), m_shadow_tint(255, 0, 0, 0),
 		m_time_day(0.0f), m_force_update_shadow_map(false), m_current_frame(0),
 		m_perspective_bias_xy(0.8f), m_perspective_bias_z(0.5f)
 {
-	(void) m_client;
-
 	m_shadows_supported = true; // assume shadows supported. We will check actual support in initialize
 	m_shadows_enabled = true;
 
@@ -99,8 +98,7 @@ void ShadowRenderer::disable()
 void ShadowRenderer::preInit(IWritableShaderSource *shsrc)
 {
 	if (g_settings->getBool("enable_dynamic_shadows")) {
-		shsrc->addShaderUniformSetterFactory(new ShadowUniformSetterFactory());
-		shsrc->addShaderUniformSetterFactory(new ShadowScreenQuadUniformSetterFactory());
+		shsrc->addShaderGeneralUniformSetter(std::make_unique<ShadowUniformSetter>());
 	}
 }
 
@@ -108,8 +106,10 @@ void ShadowRenderer::initialize()
 {
 	if (g_settings->getBool("enable_dynamic_shadows")) {
 		auto* shdsrc = m_client->getShaderSource();
-		shdsrc->addShaderUniformSetterFactory(new ShadowDepthUniformSetterFactory(this));
 	}
+
+	m_shadow_depth_cb = make_irr<ShadowDepthShaderCB>();
+	m_shadow_mix_cb = make_irr<shadowScreenQuadCB>();
 
 	createShaders();
 
@@ -269,7 +269,13 @@ void ShadowRenderer::updateSMTextures()
 		// Update SM incrementally:
 		for (DirectionalLight &light : m_light_list) {
 			// Static shader values.
-			m_currentLightCameraPos = light.getFuturePlayerPos();
+			if (m_shadow_depth_cb) {
+				m_shadow_depth_cb->MapRes = (u32)m_shadow_map_texture_size;
+				m_shadow_depth_cb->MaxFar = (f32)m_shadow_map_max_distance * BS;
+				m_shadow_depth_cb->PerspectiveBiasXY = getPerspectiveBiasXY();
+				m_shadow_depth_cb->PerspectiveBiasZ = getPerspectiveBiasZ();
+				m_shadow_depth_cb->CameraPos = light.getFuturePlayerPos();
+			}
 
 			// Note that force_update means we're drawing everything one go.
 
@@ -331,7 +337,7 @@ void ShadowRenderer::update(video::ITexture *outputTarget)
 			// Static shader values for entities are set in updateSMTextures
 			// SM texture for entities is not updated incrementally and
 			// must by updated using current player position.
-			m_currentLightCameraPos = light.getPlayerPos();
+			m_shadow_depth_cb->CameraPos = light.getPlayerPos();
 
 			// render shadows for the n0n-map objects.
 			m_driver->setRenderTarget(shadowMapTextureDynamicObjects, true,
@@ -504,20 +510,20 @@ void ShadowRenderer::createShaders()
 	ShaderConstants input_const;
 
 	try {
-		depth_shader_id = shdsrc->getShader(name_prefix + "pass1", input_const, video::EMT_ONETEXTURE_BLEND);
+		depth_shader_id = shdsrc->getShader(name_prefix + "pass1", input_const, video::EMT_ONETEXTURE_BLEND, m_shadow_depth_cb);
 
 		// This creates a clone of depth_shader with base material set to EMT_SOLID,
 		// because entities won't render shadows with base material EMP_ONETEXTURE_BLEND
-		depth_shader_entities_id = shdsrc->getShader(name_prefix + "pass1", input_const, video::EMT_SOLID);
+		depth_shader_entities_id = shdsrc->getShader(name_prefix + "pass1", input_const, video::EMT_SOLID, m_shadow_depth_cb);
 
-		mixcsm_shader_id = shdsrc->getShader(name_prefix + "pass2", input_const, video::EMT_SOLID);
+		mixcsm_shader_id = shdsrc->getShader(name_prefix + "pass2", input_const, video::EMT_SOLID, m_shadow_mix_cb);
 
 		m_screen_quad = new shadowScreenQuad();
 		m_screen_quad->getMaterial().MaterialType =
 			m_client->getShaderSource()->getShaderInfo(mixcsm_shader_id).material;
 
 		if (m_shadow_map_colored) {
-			depth_shader_trans_id = shdsrc->getShader(name_prefix + "pass1_trans", input_const, video::EMT_SOLID);
+			depth_shader_trans_id = shdsrc->getShader(name_prefix + "pass1_trans", input_const, video::EMT_SOLID, m_shadow_depth_cb);
 		}
 	} catch (const ShaderException&) {
 		m_shadows_enabled = false;

@@ -11,28 +11,29 @@ shadowScreenQuad::shadowScreenQuad()
 
 	video::SColor color(0x0);
 	Vertices[0] = video::S3DVertex(
-			-1.0f, -1.0f, 0.0f, 0, 0, 1, color, 0.0f, 1.0f);
+		-1.0f, -1.0f, 0.0f, 0, 0, 1, color, 0.0f, 1.0f);
 	Vertices[1] = video::S3DVertex(
-			-1.0f, 1.0f, 0.0f, 0, 0, 1, color, 0.0f, 0.0f);
+		-1.0f, 1.0f, 0.0f, 0, 0, 1, color, 0.0f, 0.0f);
 	Vertices[2] = video::S3DVertex(
-			1.0f, 1.0f, 0.0f, 0, 0, 1, color, 1.0f, 0.0f);
+		1.0f, 1.0f, 0.0f, 0, 0, 1, color, 1.0f, 0.0f);
 	Vertices[3] = video::S3DVertex(
-			1.0f, -1.0f, 0.0f, 0, 0, 1, color, 1.0f, 1.0f);
+		1.0f, -1.0f, 0.0f, 0, 0, 1, color, 1.0f, 1.0f);
 	Vertices[4] = video::S3DVertex(
-			-1.0f, -1.0f, 0.0f, 0, 0, 1, color, 0.0f, 1.0f);
+		-1.0f, -1.0f, 0.0f, 0, 0, 1, color, 0.0f, 1.0f);
 	Vertices[5] = video::S3DVertex(
-			1.0f, 1.0f, 0.0f, 0, 0, 1, color, 1.0f, 0.0f);
+		1.0f, 1.0f, 0.0f, 0, 0, 1, color, 1.0f, 0.0f);
 }
 
-void shadowScreenQuad::render(video::IVideoDriver *driver)
+void shadowScreenQuad::render(video::IVideoDriver* driver)
 {
-	u16 indices[6] = {0, 1, 2, 3, 4, 5};
+	u16 indices[6] = { 0, 1, 2, 3, 4, 5 };
 	driver->setMaterial(Material);
 	driver->setTransform(video::ETS_WORLD, core::matrix4());
 	driver->drawIndexedTriangleList(&Vertices[0], 6, &indices[0], 2);
 }
 
-void ShadowScreenQuadUniformSetter::onSetUniforms(video::IMaterialRendererServices *services)
+void shadowScreenQuadCB::OnSetConstants(
+	video::IMaterialRendererServices* services, s32 userData)
 {
 	s32 TextureId = 0;
 	m_sm_client_map_setting.set(&TextureId, services);
